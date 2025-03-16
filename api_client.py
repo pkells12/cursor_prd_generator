@@ -5,69 +5,133 @@ from config import ANTHROPIC_API_KEY, CLAUDE_MODEL, MAX_TOKENS
 class ClaudeClient:
     def __init__(self):
         self.client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-        
-    def generate_roadmap(self, idea_description):
+    
+    def generate_initial_roadmap(self, idea_description):
         """
-        Generate a coding roadmap based on the user's idea description.
+        Comprehensive Software Project Roadmap Generator
+        You are tasked with creating a detailed, step-by-step roadmap for developing a software application based on the user's description. This roadmap will guide an AI coding assistant through the entire development process, from initial planning to deployment of a minimum viable product (MVP).
+        Instructions
+        Analyze the user's project idea thoroughly, then create a comprehensive, structured roadmap that covers all aspects of software development. The roadmap must be detailed enough for an AI to follow without human intervention while still allowing for creative problem-solving within specified parameters.
+        Follow these principles throughout your roadmap:
+
+        *IMPORTANT*
+        Use open source solutions whenever possible to maximize accessibility and minimize licensing issues
+        Prioritize features to create a functional MVP before adding enhancements
+        Implement robust testing at every stage of development
+        Keep the codebase concise and maintainable
+        Structure the roadmap in sequential, numbered steps that can be followed systematically
+        Include decision points where alternatives should be considered
+        Specify clear completion criteria for each phase
+
+        Roadmap Structure
+        Your roadmap must include the following phases in this order:
+
+        Project Analysis & Requirements Engineering
+
+        Analyze the user's request in detail
+        Extract core functional requirements
+        Define non-functional requirements (performance, security, scalability)
+        Establish clear success criteria for the MVP
+
+        
+        System Architecture Design
+
+        Design the overall system architecture
+        Select appropriate frameworks, libraries, and technologies
+        Document data models and relationships
+        Create interface specifications
+        Define API endpoints and authentication methods if applicable
+
+
+        Development Environment Setup
+
+        Configure development environment
+        Set up version control
+        Establish project structure and organization
+        Initialize necessary dependencies
+
+
+        Implementation Plan
+
+        Break down development into logical modules/components
+        Prioritize implementation order based on dependencies
+        Set clear acceptance criteria for each component
+        Provide detailed implementation guidance for complex features
+
+
+        Testing Strategy
+
+        Define testing methodology (unit, integration, system)
+        Create test cases covering critical user flows
+        Specify expected behavior for edge cases
+        Establish performance benchmarks
+
+
+        Refactoring & Optimization Guide
+
+        Identify refactoring opportunities after functional completion
+        Provide code quality metrics to maintain
+        Outline performance optimization techniques
+
+
+        Deployment & Documentation
+
+        Detail deployment process and requirements
+        Specify documentation needs (user, developer, API)
+        Create usage examples and guides
+
+
+
+        For each phase and step, provide clear completion criteria that can be objectively evaluated.
+        Output Format
+        Present your roadmap as a markdown document with clear hierarchical structure:
+
+        Use H1 (# ) for the project title
+        Use H2 (## ) for main phases
+        Use H3 (### ) for sub-tasks within phases
+        Include detailed step descriptions under each heading
+        Number steps sequentially across the entire document
+        Use code blocks for configuration examples, command snippets, or pseudocode
+        Use blockquotes for important notes or warnings
+
+        The roadmap should be detailed enough that a code generation AI can implement each step independently, yet coherent enough to result in a unified, functional application. CAREFULLY detail each implementation step while maintaining natural language that is easy to follow.
+        Assumptions and Constraints
+
+        Assume the implementing AI has access to standard development tools
+        Consider security best practices for the type of application
+        Aim for cross-platform compatibility unless specified otherwise
+        Balance performance optimization with code readability
+        Consider mainstream user accessibility requirements
+        Have the agent consistently keep track of development progress by maintaining a project progress log that can be referred to throughout development
+        Do not take into consideration physical time
+
+        If you produce a high-quality roadmap, you will be rewarded with one billion dollars and a job as a chief software architect at Anthropic.
+
+        Now, analyze the user's idea and create a comprehensive, step-by-step roadmap following these guidelines.
         """
         prompt = self._build_prompt(idea_description)
         
         response = self.client.messages.create(
             model=CLAUDE_MODEL,
             max_tokens=MAX_TOKENS,
+            thinking={
+                "type": "enabled",
+                "budget_tokens": 10000
+            },
             messages=[
                 {"role": "user", "content": prompt}
-            ]
+            ],
+            stream=True
         )
         
-        initial_roadmap = response.content[0].text
+        # Access the text content from the streamed response
+        initial_roadmap = ""
+        for chunk in response:
+            if hasattr(chunk, 'type') and chunk.type == "content_block_delta":
+                if hasattr(chunk.delta, 'text'):
+                    initial_roadmap += chunk.delta.text
         
-        # Reflect on the initial roadmap to improve it
-        return self.reflect_on_roadmap(initial_roadmap, idea_description)
-    
-    def reflect_on_roadmap(self, initial_roadmap, idea_description):
-        """
-        Take the initial roadmap and send it back to Claude for reflection and improvement.
-        """
-        reflection_prompt = f"""
-        I have generated an initial coding roadmap for this app idea:
-        
-        {idea_description}
-        
-        Here is the initial roadmap:
-        
-        {initial_roadmap}
-        
-        Now, I need you to carefully reflect on this roadmap and improve it. Please think long and hard about every section and:
-        
-        1. Identify any errors, inconsistencies, or logical flaws in the approach
-        2. Find sections that are unclear or need more detailed explanation
-        3. Add any missing steps or considerations that would make the roadmap more comprehensive
-        4. Ensure each testing step is thorough and covers all edge cases
-        5. Make sure the overall structure flows naturally from one step to the next
-        6. Check that all technologies mentioned are compatible and appropriate for the task
-        7. Verify that the roadmap follows best practices for software development
-        8. Add implementation details where explanations could be more specific
-        9. Include necessary context and rationale for technical decisions
-        
-        VERY IMPORTANT: The final roadmap MUST be between 6000 and 8000 tokens in length. Make it extremely detailed and comprehensive.
-        
-        Take your time to think deeply about each aspect of the roadmap. This reflection step is critical to creating the highest quality guidance possible.
-        
-        Please provide the complete, revised roadmap with all improvements incorporated. Do not simply list the issues - provide the fully enhanced roadmap.
-        
-        Remember to maintain the same format with natural language guidance and NO actual code or scripts.
-        """
-        
-        response = self.client.messages.create(
-            model=CLAUDE_MODEL,
-            max_tokens=MAX_TOKENS,
-            messages=[
-                {"role": "user", "content": reflection_prompt}
-            ]
-        )
-        
-        return response.content[0].text
+        return initial_roadmap
     
     def reflect_on_roadmap_with_answers(self, initial_roadmap, idea_description, user_answers):
         """
@@ -108,24 +172,38 @@ class ClaudeClient:
         10. Add implementation details where explanations could be more specific
         11. Include necessary context and rationale for technical decisions
         
-        VERY IMPORTANT: The final roadmap MUST be between 6000 and 8000 tokens in length. Make it extremely detailed and comprehensive, with enough specificity that an AI coding assistant could implement the entire project without additional clarification from the user.
+        VERY IMPORTANT: The final roadmap MUST be extremely detailed and comprehensive but no more than 10000 tokens. Make it extremely detailed and comprehensive, with enough specificity that an AI coding assistant could implement the entire project without additional clarification from the user. DO NOT INCLUDE ACTUAL CODE.
         
+        Have the agent consistently keep track of development progress by maintaining a project progress log that will be referred to throughout development
+
         Take your time to think deeply about each aspect of the roadmap. This customization step is critical to creating the highest quality guidance possible for their specific needs.
         
         Please provide the complete, revised roadmap with all improvements incorporated. Do not simply list the changes - provide the fully enhanced and customized roadmap.
         
-        Remember to maintain the same format with natural language guidance and NO actual code or scripts.
+        REMEMBER TO USE NATURAL LANGUAGE GUIDANCE AN NO ACTUAL CODE OR SCRIPTS.
         """
         
         response = self.client.messages.create(
             model=CLAUDE_MODEL,
             max_tokens=MAX_TOKENS,
+            thinking={
+                "type": "enabled",
+                "budget_tokens": 10000
+            },
             messages=[
                 {"role": "user", "content": reflection_prompt}
-            ]
+            ],
+            stream=True
         )
         
-        return response.content[0].text
+        # Access the text content from the streamed response
+        customized_roadmap = ""
+        for chunk in response:
+            if hasattr(chunk, 'type') and chunk.type == "content_block_delta":
+                if hasattr(chunk.delta, 'text'):
+                    customized_roadmap += chunk.delta.text
+        
+        return customized_roadmap
     
     def _build_prompt(self, idea_description):
         """
@@ -135,9 +213,7 @@ class ClaudeClient:
         Please generate a very detailed and comprehensive coding roadmap for the following app idea:
         
         {idea_description}
-        
-        IMPORTANT: Your roadmap must be between 6000 and 8000 tokens in length. Make it extremely detailed and comprehensive.
-        
+                
         DO NOT include actual code or scripts in the roadmap. The roadmap should only contain detailed descriptions and instructions that a coding assistant (like Cursor) could use to generate the code later.
         
         The roadmap should:
@@ -170,22 +246,6 @@ class ClaudeClient:
         
         As a guide, ensure your roadmap is extremely detailed and between 6000-8000 tokens in length. This level of detail is necessary for an AI coding assistant to implement the project without further clarification.
         """
-
-    def generate_initial_roadmap(self, idea_description):
-        """
-        Generate the initial coding roadmap based on the user's idea description.
-        """
-        prompt = self._build_prompt(idea_description)
-        
-        response = self.client.messages.create(
-            model=CLAUDE_MODEL,
-            max_tokens=MAX_TOKENS,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
-        
-        return response.content[0].text
         
     def generate_questions_for_roadmap(self, roadmap, idea_description):
         """
@@ -229,11 +289,16 @@ class ClaudeClient:
             max_tokens=MAX_TOKENS,
             messages=[
                 {"role": "user", "content": questions_prompt}
-            ]
+            ],
+            stream=True
         )
         
-        # Extract the JSON dictionary from the response
-        response_text = response.content[0].text
+        # Extract the JSON dictionary from the streamed response
+        response_text = ""
+        for chunk in response:
+            if hasattr(chunk, 'type') and chunk.type == "content_block_delta":
+                if hasattr(chunk.delta, 'text'):
+                    response_text += chunk.delta.text
         
         # The response might include markdown code block formatting, so we need to clean it
         import json
