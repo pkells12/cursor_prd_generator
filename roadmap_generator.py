@@ -57,8 +57,6 @@ async def generate_roadmap_with_questions(idea_description, animation_type=Anima
     if status_callback:
         status_callback("✅ Initial roadmap generation complete!")
     
-    print("\nInitial roadmap complete!")
-    
     # Generate questions animation
     questions_animation = LoadingAnimation("Analyzing roadmap and generating customized questions", animation_type)
     questions_animation.start()
@@ -137,9 +135,14 @@ def main():
     print("\nRoadmap generation complete!")
     
     if args.output:
-        with open(args.output, 'w') as f:
+        import os
+        # Ensure roadmaps directory exists
+        os.makedirs('roadmaps', exist_ok=True)
+        # Save to roadmaps directory
+        file_path = os.path.join('roadmaps', args.output)
+        with open(file_path, 'w') as f:
             f.write(roadmap)
-        print(f"Roadmap saved to {args.output}")
+        print(f"Roadmap saved to {file_path}")
     else:
         print("\n" + roadmap)
 

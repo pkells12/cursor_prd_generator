@@ -7,6 +7,7 @@ from rich.markdown import Markdown
 from config import APP_NAME, APP_VERSION
 from loading_animation import LoadingAnimation, AnimationType
 import threading
+import os
 
 app = typer.Typer()
 console = Console()
@@ -135,11 +136,13 @@ def save(
             # Stop the animation
             roadmap_animation.stop()
         
-        # Save to file
-        with open(output_file, "w") as f:
+        # Save to file in the roadmaps directory
+        os.makedirs('roadmaps', exist_ok=True)  # Ensure the directory exists
+        file_path = os.path.join('roadmaps', output_file)
+        with open(file_path, "w") as f:
             f.write(roadmap)
         
-        console.print(f"\n[bold green]Roadmap saved to {output_file}[/bold green]")
+        console.print(f"\n[bold green]Roadmap saved to {file_path}[/bold green]")
     except Exception as e:
         # Ensure animation is stopped in case of error
         if 'roadmap_animation' in locals():
